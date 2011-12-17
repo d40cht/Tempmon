@@ -1,5 +1,26 @@
 #include "WProgram.h"
-#include "../include/xbeeapi.hpp"
+//#include "../include/xbeeapi.hpp"
+
+
+#if 1
+
+int ledPin =  13;    // LED connected to digital pin 13
+
+void run()                     
+{
+    // initialize the digital pin as an output:
+    pinMode(ledPin, OUTPUT);
+   
+    while(true)
+    {
+        digitalWrite(ledPin, HIGH);   // set the LED on
+        delay(20);                  // wait for a second
+        digitalWrite(ledPin, LOW);    // set the LED off
+        delay(20);                  // wait for a second
+    }
+}
+
+#else
 
 #define TEMP_PIN  12 //See Note 1, sheepdogguides..ar3ne1tt.htm
 
@@ -139,8 +160,11 @@ void run()
     }
 }
 
+#endif
+
 int main(void)
 {
+    init();
     run();
     
     return 0;
