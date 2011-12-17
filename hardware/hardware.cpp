@@ -1,4 +1,5 @@
 #include "WProgram.h"
+#include "../include/xbeeapi.hpp"
 
 #define TEMP_PIN  12 //See Note 1, sheepdogguides..ar3ne1tt.htm
 
