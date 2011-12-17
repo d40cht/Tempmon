@@ -1,22 +1,107 @@
 #include "WProgram.h"
-//#include "../include/xbeeapi.hpp"
+#include "../include/xbeeapi.hpp"
 
 
 #if 1
 
-int ledPin =  13;    // LED connected to digital pin 13
+class ArduinoSerialPort
+{
+public:
+    void writeByte( uint8_t v )
+    {
+        Serial.write( v );
+    }
+    
+    uint8_t readByte()
+    {
+        while ( !Serial.available() ) delay(10);
+        return Serial.read();
+    }
+};
+
+namespace
+{
+    int ledPin =  13;    // LED connected to digital pin 13
+    
+    const uint8_t cmdModemStatus    = 0x8a;
+    const uint8_t cmdAT             = 0x08;
+    const uint8_t cmdTX             = 0x10;
+    const uint8_t txStatus          = 0x8b;
+    const uint8_t rxPacket          = 0x90;
+    
+    const uint8_t STATUS_OK = 0;
+    const uint8_t STATUS_ERROR = 1;
+    const uint8_t STATUS_INVALID_COMMAND = 2;
+    const uint8_t STATUS_INVALID_PARAMETER = 3;
+}
+
+void signal( uint8_t value )
+{
+    for ( size_t i = 0; i < 8; ++i )
+    {
+        if ( value & 1 )
+        {
+            digitalWrite(ledPin, HIGH);
+            delay(300);
+            digitalWrite(ledPin, LOW);
+            delay(200);            
+        }
+        else
+        {
+            digitalWrite(ledPin, HIGH);
+            delay(100);
+            digitalWrite(ledPin, LOW);
+            delay(400);
+        }
+        value >>= 1;
+    }
+}
+
+void assert( uint8_t errCode, bool predicate )
+{
+    if ( !predicate ) signal(errCode);
+    while(true);
+}
 
 void run()                     
 {
     // initialize the digital pin as an output:
+    Serial.begin(19200);
     pinMode(ledPin, OUTPUT);
-   
+    
+    ArduinoSerialPort s;
+    XBeeComms<ArduinoSerialPort> xbee( s );
+    
+    assert( 0x4f, false );
+    
+    uint8_t frameId = 1;
+    {
+        Packet p;
+        
+        p.push_back( cmdAT );
+        p.push_back( frameId );
+        p.push_back( 'I' );
+        p.push_back( 'D' );
+        p.push_back( 0x27 );
+        p.push_back( 0x27 );
+        xbee.write(p);
+        
+        Packet resp( xbee.readPacket() );
+        assert( 0x1, resp.m_message[0] == 0x88 );
+        assert( 0x2, resp.m_message[1] == frameId );
+        assert( 0x3, resp.m_message[4] == STATUS_OK );
+        
+        frameId++;
+    }
+    
     while(true)
     {
+        
+
         digitalWrite(ledPin, HIGH);   // set the LED on
-        delay(20);                  // wait for a second
+        delay(100);                  // wait for a second
         digitalWrite(ledPin, LOW);    // set the LED off
-        delay(20);                  // wait for a second
+        delay(100);                  // wait for a second
     }
 }
 
