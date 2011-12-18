@@ -6,6 +6,8 @@
 
 #include "xbeeapi.hpp"
 
+// Build with: g++ master/pctest.cpp -DLINUX -I ./include -o pctest && ./pctest
+
 class PCSerialPort
 {
 public:

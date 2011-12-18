@@ -1,9 +1,17 @@
 #pragma once
 
+#ifdef LINUX
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
+#endif
 
 class Packet;
+
+#ifdef LINUX
+#   define ASSERT(a) assert(a)
+#else
+#   define ASSERT(a)
+#endif
 
 template<typename T>
 class XBeeComms
@@ -30,7 +38,7 @@ public:
     
     void push_back( uint8_t val )
     {
-        assert( m_count < capacity );
+        ASSERT( m_count < capacity );
         m_buf[m_count++] = val;
     }
     
@@ -38,7 +46,7 @@ public:
     
     uint8_t operator[]( size_t index ) const
     {
-        assert( index < m_count );
+        ASSERT( index < m_count );
         return m_buf[index];
     }
     
@@ -70,6 +78,7 @@ public:
         m_message.push_back( v );
     }
     
+#ifdef LINUX
     void dump()
     {
         for ( size_t i = 0; i < m_message.size(); ++i )
@@ -79,6 +88,7 @@ public:
         }
         std::cout << std::endl;
     }
+#endif
     
 public:
     ByteBuf m_message;
@@ -145,3 +155,4 @@ Packet XBeeComms<T>::readPacket()
         }
     }
 }
+
