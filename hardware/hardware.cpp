@@ -42,25 +42,30 @@ void signal( uint8_t value )
         if ( value & 1 )
         {
             digitalWrite(ledPin, HIGH);
-            delay(300);
+            delay(450);
             digitalWrite(ledPin, LOW);
-            delay(200);            
+            delay(0);            
         }
         else
         {
             digitalWrite(ledPin, HIGH);
-            delay(100);
+            delay(50);
             digitalWrite(ledPin, LOW);
-            delay(400);
+            delay(450);
         }
+        delay(300);
         value >>= 1;
     }
+    delay(500);
 }
 
 void assert( uint8_t errCode, bool predicate )
 {
-    if ( !predicate ) signal(errCode);
-    while(true);
+    if ( !predicate )
+    {
+        signal(errCode);
+        while(true);
+    }
 }
 
 void run()                     
@@ -72,9 +77,9 @@ void run()
     ArduinoSerialPort s;
     XBeeComms<ArduinoSerialPort> xbee( s );
     
-    assert( 0x4f, false );
-    
     uint8_t frameId = 1;
+    
+    // Set Zigbee PAN
     {
         Packet p;
         
@@ -87,6 +92,7 @@ void run()
         xbee.write(p);
         
         Packet resp( xbee.readPacket() );
+        signal( resp.m_message[0] );
         assert( 0x1, resp.m_message[0] == 0x88 );
         assert( 0x2, resp.m_message[1] == frameId );
         assert( 0x3, resp.m_message[4] == STATUS_OK );
@@ -94,14 +100,66 @@ void run()
         frameId++;
     }
     
+    // Check association status
+    {
+        Packet p;
+        
+        p.push_back( cmdAT );
+        p.push_back( frameId );
+        p.push_back( 'A' );
+        p.push_back( 'I' );
+        xbee.write(p);
+        
+        Packet resp( xbee.readPacket() );
+        assert( 0x4, resp.m_message[0] == 0x88 );
+        assert( 0x5, resp.m_message[1] == frameId );
+        assert( 0x6, resp.m_message[4] == STATUS_OK );
+        
+        // Association status. 0x0: coord started or endpoint joined PAN.
+        assert( 0x7, resp.m_message[5] == 0x0 );
+        
+        frameId++;
+    }
+    
     while(true)
     {
+        // Send a packet to the coordinator (64 bit address of 0)
+        Packet p;
+        p.push_back( cmdTX );
         
+        p.push_back( frameId );
+        
+        // 64-bit dest address
+        for ( size_t i = 0; i < 8; ++i ) p.push_back(0);
+        
+        // 16-bit address (?)
+        p.push_back(0);
+        p.push_back(0);
+        
+        // Max hops is max avail
+        p.push_back(0);
+        
+        // Unicast packet
+        p.push_back(0);
+        
+        // The data
+        p.push_back( 0x1 );
+        p.push_back( 0x2 );
+        p.push_back( 0x3 );
+        p.push_back( 0x4 );
+        p.push_back( 0x5 );
+        
+        xbee.write(p);
+        
+        Packet resp( xbee.readPacket() );
+        //resp.dump();
 
-        digitalWrite(ledPin, HIGH);   // set the LED on
-        delay(100);                  // wait for a second
-        digitalWrite(ledPin, LOW);    // set the LED off
-        delay(100);                  // wait for a second
+        // Check for TX success
+        assert( 0x8, resp.m_message[5] == 0x0 );
+        
+        frameId++;
+        
+        delay(3000);
     }
 }
 
