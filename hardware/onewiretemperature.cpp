@@ -15,7 +15,7 @@ uint16_t OneWireTemperature::readTemp()
   
     LowByte = readByte(m_pin);
     HighByte = readByte(m_pin);
-    TReading = (HighByte << 8) + LowByte;
+    uint16_t TReading = (HighByte << 8) + LowByte;
     
     /*
     SignBit = TReading & 0x8000;  // test most sig bit

@@ -92,7 +92,11 @@ void test( const char* portName )
         //Tc_100 = (6 * TReading) + TReading / 4;    // multiply by (100 * 0.0625) or 6.25
         double Tc_100 = TReading * 0.5;
         
-        std::cout << boost::posix_time::second_clock::local_time() << std::hex << " 0x" << fullAddress << " - " << Tc_100 << " degC" << std::endl;
+        uint16_t voltageRaw = static_cast<uint16_t>( resp.m_message[14] )<<8 | resp.m_message[15];
+
+        double voltage = static_cast<double>(voltageRaw) * (1.2/1023.0);
+        
+        std::cout << boost::posix_time::second_clock::local_time() << std::hex << " 0x" << fullAddress << " - " << Tc_100 << " degC, " << voltage << "V" << std::endl;
         
         //resp.dump();
     }
@@ -100,5 +104,6 @@ void test( const char* portName )
 
 int main( int argc, char *argv[] )
 {
+    std::cout << "Starting monitoring" << std::endl << std::endl;
     test( "/dev/ttyUSB0" );
 }

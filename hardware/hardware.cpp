@@ -127,41 +127,62 @@ void run()
         if ( light ) digitalWrite(ledPin, HIGH);
         else digitalWrite(ledPin, LOW);
         
+        
+        // Read the temperature sensor
+        uint16_t temp = tempSensor.readTemp();
+        
+        // Interrogate the XBee module for supply voltage information
+        uint16_t voltage = 0;
+        {
+            Packet p;
+            p.push_back( cmdAT );
+            p.push_back( frameId );
+            p.push_back( '%' );
+            p.push_back( 'V' );
+            xbee.write(p);
+            
+            Packet resp( xbee.readPacket() );
+            assert( 0x8, resp.m_message[0] == 0x88 );
+            assert( 0x9, resp.m_message[1] == frameId );
+            assert( 0xa, resp.m_message[4] == STATUS_OK );
+            
+            voltage = static_cast<uint16_t>( resp.m_message[5] )<<8 | resp.m_message[6];
+        }
+        
         light = !light;
         
         // Send a packet to the coordinator (64 bit address of 0)
-        Packet p;
-        p.push_back( cmdTX );
+        {
+            Packet p;
+            p.push_back( cmdTX );
+            
+            p.push_back( frameId );
+            
+            // 64-bit dest address
+            for ( size_t i = 0; i < 8; ++i ) p.push_back(0);
+            
+            // 16-bit address (?)
+            p.push_back(0);
+            p.push_back(0);
+            
+            // Max hops is max avail
+            p.push_back(0);
+            
+            // Unicast packet
+            p.push_back(0);
+            
+            p.push_back( temp>>8 );
+            p.push_back( temp&255 );
+            
+            xbee.write(p);
+            
+            Packet resp( xbee.readPacket() );
+            
+            // Check for TX success
+            assert( 0xb, resp.m_message[5] == 0x0 );
         
-        p.push_back( frameId );
-        
-        // 64-bit dest address
-        for ( size_t i = 0; i < 8; ++i ) p.push_back(0);
-        
-        // 16-bit address (?)
-        p.push_back(0);
-        p.push_back(0);
-        
-        // Max hops is max avail
-        p.push_back(0);
-        
-        // Unicast packet
-        p.push_back(0);
-        
-        // The data
-        uint16_t temp = tempSensor.readTemp();
-        
-        p.push_back( temp>>8 );
-        p.push_back( temp&255 );
-        
-        xbee.write(p);
-        
-        Packet resp( xbee.readPacket() );
-        
-        // Check for TX success
-        assert( 0x8, resp.m_message[5] == 0x0 );
-        
-        frameId++;
+            frameId++;
+        }
         
         delay(10000);
     }
