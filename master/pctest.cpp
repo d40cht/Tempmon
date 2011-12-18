@@ -1,5 +1,7 @@
 #include <iostream>
 
+#include <boost/date_time/posix_time/posix_time.hpp>
+
 #include <assert.h>
 #include <fcntl.h>
 #include <termios.h>
@@ -90,7 +92,7 @@ void test( const char* portName )
         //Tc_100 = (6 * TReading) + TReading / 4;    // multiply by (100 * 0.0625) or 6.25
         double Tc_100 = TReading * 0.5;
         
-        std::cout << std::hex << "0x" << fullAddress << " : " << Tc_100 << " deg C" << std::endl;
+        std::cout << boost::posix_time::second_clock::local_time() << std::hex << " 0x" << fullAddress << " - " << Tc_100 << " degC" << std::endl;
         
         //resp.dump();
     }
@@ -98,9 +100,5 @@ void test( const char* portName )
 
 int main( int argc, char *argv[] )
 {
-    std::cout << "Hello" << std::endl;
-    
     test( "/dev/ttyUSB0" );
-    
-    std::cout << "Goodbye" << std::endl;
 }
