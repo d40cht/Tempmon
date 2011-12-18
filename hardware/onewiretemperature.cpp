@@ -3,7 +3,7 @@
 
 uint16_t OneWireTemperature::readTemp()
 {
-    int HighByte, LowByte, TReading, SignBit, Tc_100, Whole, Fract;
+    int HighByte, LowByte;
   
     reset(m_pin);
     writeByte(m_pin, 0xcc);

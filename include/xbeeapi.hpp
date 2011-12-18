@@ -3,6 +3,7 @@
 #ifdef LINUX
 typedef unsigned char uint8_t;
 typedef unsigned short uint16_t;
+typedef unsigned long long uint64_t;
 #endif
 
 class Packet;
@@ -84,7 +85,7 @@ public:
         for ( size_t i = 0; i < m_message.size(); ++i )
         {
             std::cout << std::hex;
-            std::cout << ": " << m_message[i] << ", 0x" << (int) m_message[i] << std::endl;
+            std::cout << i << " : " << m_message[i] << ", 0x" << (int) m_message[i] << std::endl;
         }
         std::cout << std::endl;
     }
