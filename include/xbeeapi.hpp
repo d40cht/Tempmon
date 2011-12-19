@@ -31,7 +31,7 @@ private:
 
 class ByteBuf
 {
-    static const size_t capacity=32;
+    static const size_t capacity=48;
 public:
     ByteBuf() : m_count(0)
     {

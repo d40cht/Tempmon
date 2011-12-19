@@ -69,35 +69,40 @@ void test( const char* portName )
     {   
         Packet resp( xbeeComms.readPacket() );
         
-        
-        assert( resp.m_message[0] == rxPacket );
-        uint64_t fullAddress = 0;
-        for ( int i = 1; i < 9; ++i )
+        try
         {
-            fullAddress = (fullAddress << 8LL) | static_cast<uint64_t>(resp.m_message[i]);
-        }
+            assert( resp.m_message[0] == rxPacket );
+            uint64_t fullAddress = 0;
+            for ( int i = 1; i < 9; ++i )
+            {
+                fullAddress = (fullAddress << 8LL) | static_cast<uint64_t>(resp.m_message[i]);
+            }
 
-        // Packet acknowledged
-        assert( resp.m_message[11] == 0x01 );
-        
-        uint8_t tempMSB = resp.m_message[12];
-        uint8_t tempLSB = resp.m_message[13];
-        
-        uint16_t TReading = static_cast<uint16_t>(tempMSB)<<8 | tempLSB;
-        int SignBit = TReading & 0x8000;  // test most sig bit
-        if (SignBit) // negative
+            // Packet acknowledged
+            assert( resp.m_message[11] == 0x01 );
+            
+            uint8_t tempMSB = resp.m_message[12];
+            uint8_t tempLSB = resp.m_message[13];
+            
+            uint16_t TReading = (static_cast<uint16_t>(tempMSB)<<8) | static_cast<uint16_t>(tempLSB);
+            int SignBit = TReading & 0x8000;  // test most sig bit
+            if (SignBit) // negative
+            {
+                TReading = (TReading ^ 0xffff) + 1; // 2's comp
+            }
+
+            double Tc_100 = TReading * 0.5;
+            
+            uint16_t voltageRaw = static_cast<uint16_t>( resp.m_message[14] )<<8 | resp.m_message[15];
+
+            double voltage = static_cast<double>(voltageRaw) * (1.2/1023.0);
+            
+            std::cout << boost::posix_time::second_clock::local_time() << std::hex << " 0x" << fullAddress << " - " << Tc_100 << " degC, " << voltage << "V" << std::endl;
+        }
+        catch ( std::exception& e )
         {
-            TReading = (TReading ^ 0xffff) + 1; // 2's comp
+            std::cerr << "  Exception caught: " << e.what() << std::endl;
         }
-        //Tc_100 = (6 * TReading) + TReading / 4;    // multiply by (100 * 0.0625) or 6.25
-        double Tc_100 = TReading * 0.5;
-        
-        uint16_t voltageRaw = static_cast<uint16_t>( resp.m_message[14] )<<8 | resp.m_message[15];
-
-        double voltage = static_cast<double>(voltageRaw) * (1.2/1023.0);
-        
-        std::cout << boost::posix_time::second_clock::local_time() << std::hex << " 0x" << fullAddress << " - " << Tc_100 << " degC, " << voltage << "V" << std::endl;
-        
         //resp.dump();
     }
 }

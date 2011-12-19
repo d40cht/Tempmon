@@ -129,7 +129,9 @@ void run()
         
         
         // Read the temperature sensor
+        delay(2000);
         uint16_t temp = tempSensor.readTemp();
+        delay(2000);
         
         // Interrogate the XBee module for supply voltage information
         uint16_t voltage = 0;
@@ -173,6 +175,8 @@ void run()
             
             p.push_back( temp>>8 );
             p.push_back( temp&255 );
+            p.push_back( voltage>>8 );
+            p.push_back( voltage&255 );
             
             xbee.write(p);
             
@@ -184,7 +188,7 @@ void run()
             frameId++;
         }
         
-        delay(10000);
+        delay(6000);
     }
 }
 

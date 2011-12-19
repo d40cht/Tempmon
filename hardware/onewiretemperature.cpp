@@ -3,8 +3,6 @@
 
 uint16_t OneWireTemperature::readTemp()
 {
-    int HighByte, LowByte;
-  
     reset(m_pin);
     writeByte(m_pin, 0xcc);
     writeByte(m_pin, 0x44); // perform temperature conversion, strong pullup for one sec
@@ -13,23 +11,10 @@ uint16_t OneWireTemperature::readTemp()
     writeByte(m_pin, 0xcc);
     writeByte(m_pin, 0xbe);
   
-    LowByte = readByte(m_pin);
-    HighByte = readByte(m_pin);
+    uint16_t LowByte = readByte(m_pin);
+    uint16_t HighByte = readByte(m_pin);
     uint16_t TReading = (HighByte << 8) + LowByte;
-    
-    /*
-    SignBit = TReading & 0x8000;  // test most sig bit
-    if (SignBit) // negative
-    {
-      TReading = (TReading ^ 0xffff) + 1; // 2's comp
-    }
-    //Tc_100 = (6 * TReading) + TReading / 4;    // multiply by (100 * 0.0625) or 6.25
-    Tc_100 = TReading*50;
-  
-    Whole = Tc_100 / 100;  // separate off the whole and fractional portions
-    Fract = Tc_100 % 100;
-    */
-    
+
     return TReading;
 }
 
