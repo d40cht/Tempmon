@@ -21,7 +21,8 @@ public:
 namespace
 {
     int ledPin = 13;    // LED connected to digital pin 13
-    int temperaturePin = 12;
+    int temperaturePin = 2;
+    int pirPin = 3;
     
     const uint8_t cmdModemStatus    = 0x8a;
     const uint8_t cmdAT             = 0x08;
@@ -63,8 +64,19 @@ void assert( uint8_t errCode, bool predicate )
 {
     if ( !predicate )
     {
+        while (true)
+        {
+            signal(errCode);
+            delay(2000);
+        }
+    }
+}
+
+void check( uint8_t errCode, bool predicate )
+{
+    if ( !predicate )
+    {
         signal(errCode);
-        while(true);
     }
 }
 
@@ -73,6 +85,7 @@ void run()
     // initialize the digital pin as an output:
     Serial.begin(19200);
     pinMode(ledPin, OUTPUT);
+    pinMode(pirPin, INPUT);
     
     ArduinoSerialPort s;
     XBeeComms<ArduinoSerialPort> xbee( s );
@@ -127,11 +140,16 @@ void run()
         if ( light ) digitalWrite(ledPin, HIGH);
         else digitalWrite(ledPin, LOW);
         
+        // Delay and poll the PIR sensor
+        bool sensedMovement = false;
+        for ( int i = 0; i < 5; ++i )
+        {
+            delay(2000);
+            sensedMovement |= (digitalRead(pirPin) ? true : false);
+        }
         
         // Read the temperature sensor
-        delay(2000);
         uint16_t temp = tempSensor.readTemp();
-        delay(2000);
         
         // Interrogate the XBee module for supply voltage information
         uint16_t voltage = 0;
@@ -173,22 +191,29 @@ void run()
             // Unicast packet
             p.push_back(0);
             
-            p.push_back( temp>>8 );
-            p.push_back( temp&255 );
-            p.push_back( voltage>>8 );
-            p.push_back( voltage&255 );
+            uint8_t tempHigh = temp >> 8;
+            uint8_t tempLow = temp & 255;
+            
+            p.push_back( tempHigh );
+            p.push_back( tempLow );
+            p.push_back( tempHigh ^ tempLow );
+            
+            uint8_t voltageHigh = voltage >> 8;
+            uint8_t voltageLow = voltage & 255;
+            p.push_back( voltageHigh );
+            p.push_back( voltageLow );
+            p.push_back( voltageHigh ^ voltageLow );
+            p.push_back( sensedMovement ? 1 : 0 );
             
             xbee.write(p);
             
             Packet resp( xbee.readPacket() );
             
             // Check for TX success
-            assert( 0xb, resp.m_message[5] == 0x0 );
+            check( 0xb, resp.m_message[5] == 0x0 );
         
             frameId++;
         }
-        
-        delay(6000);
     }
 }
 

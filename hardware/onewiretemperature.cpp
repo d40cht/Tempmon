@@ -4,17 +4,19 @@
 uint16_t OneWireTemperature::readTemp()
 {
     reset(m_pin);
-    writeByte(m_pin, 0xcc);
+    writeByte(m_pin, 0xcc); // skip rom (broadcast to all devices)
     writeByte(m_pin, 0x44); // perform temperature conversion, strong pullup for one sec
+    
+    delay(100);
   
     reset(m_pin);
     writeByte(m_pin, 0xcc);
-    writeByte(m_pin, 0xbe);
+    writeByte(m_pin, 0xbe); // read scratchpad (first two registers are the temperature)
   
-    uint16_t LowByte = readByte(m_pin);
-    uint16_t HighByte = readByte(m_pin);
-    uint16_t TReading = (HighByte << 8) + LowByte;
-
+    uint8_t LowByte = readByte(m_pin);
+    uint8_t HighByte = readByte(m_pin);
+    uint16_t TReading = (static_cast<uint16_t>(HighByte) << 8) | static_cast<uint16_t>(LowByte);
+    
     return TReading;
 }
 
