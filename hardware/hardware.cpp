@@ -3,6 +3,8 @@
 #include "../include/xbeeapi.hpp"
 #include "onewiretemperature.hpp"
 
+void(* resetFunc) (void) = 0;
+
 class ArduinoSerialPort
 {
 public:
@@ -64,19 +66,9 @@ void assert( uint8_t errCode, bool predicate )
 {
     if ( !predicate )
     {
-        while (true)
-        {
-            signal(errCode);
-            delay(2000);
-        }
-    }
-}
-
-void check( uint8_t errCode, bool predicate )
-{
-    if ( !predicate )
-    {
         signal(errCode);
+        delay(2000);
+        resetFunc();
     }
 }
 
@@ -84,8 +76,17 @@ void run()
 {
     // initialize the digital pin as an output:
     Serial.begin(19200);
+    
     pinMode(ledPin, OUTPUT);
     pinMode(pirPin, INPUT);
+    
+    for ( int i = 0; i < 50; ++i )
+    {
+        digitalWrite(ledPin, HIGH);
+        delay(15);
+        digitalWrite(ledPin, LOW);
+        delay(15);
+    }
     
     ArduinoSerialPort s;
     XBeeComms<ArduinoSerialPort> xbee( s );
@@ -210,7 +211,7 @@ void run()
             Packet resp( xbee.readPacket() );
             
             // Check for TX success
-            check( 0xb, resp.m_message[5] == 0x0 );
+            assert( 0xb, resp.m_message[5] == 0x0 );
         
             frameId++;
         }
