@@ -71,33 +71,44 @@ void test( const char* portName )
         
         try
         {
-            assert( resp.m_message[0] == rxPacket );
-            uint64_t fullAddress = 0;
-            for ( int i = 1; i < 9; ++i )
+            if ( resp.m_message[0] == rxPacket )
             {
-                fullAddress = (fullAddress << 8LL) | static_cast<uint64_t>(resp.m_message[i]);
-            }
+                uint64_t fullAddress = 0;
+                for ( int i = 1; i < 9; ++i )
+                {
+                    fullAddress = (fullAddress << 8LL) | static_cast<uint64_t>(resp.m_message[i]);
+                }
 
-            // Packet acknowledged
-            assert( resp.m_message[11] == 0x01 );
-            
-            uint8_t tempMSB = resp.m_message[12];
-            uint8_t tempLSB = resp.m_message[13];
-            
-            uint16_t TReading = (static_cast<uint16_t>(tempMSB)<<8) | static_cast<uint16_t>(tempLSB);
-            int SignBit = TReading & 0x8000;  // test most sig bit
-            if (SignBit) // negative
+                // Packet acknowledged
+                assert( resp.m_message[11] == 0x01 );
+                
+                uint8_t tempMSB = resp.m_message[12];
+                uint8_t tempLSB = resp.m_message[13];
+                uint8_t tempCheck = resp.m_message[14];
+                assert( tempMSB ^ tempLSB == tempCheck );
+                
+                uint16_t TReading = (static_cast<uint16_t>(tempMSB)<<8) | static_cast<uint16_t>(tempLSB);
+                uint16_t TReadingRaw = TReading;
+                int SignBit = TReading & 0x8000;  // test most sig bit
+                if (SignBit) // negative
+                {
+                    TReading = (TReading ^ 0xffff) + 1; // 2's comp
+                }
+
+                double Tc_100 = TReading * 0.0625;
+                
+                uint16_t voltageRaw = static_cast<uint16_t>( resp.m_message[15] )<<8 | resp.m_message[16];
+                uint8_t voltageChecksum = resp.m_message[17];
+                double voltage = static_cast<double>(voltageRaw) * (1.2/1023.0);
+                
+                int movement = resp.m_message[18];
+                
+                std::cout << boost::posix_time::second_clock::local_time() << ", " << std::hex << " 0x" << fullAddress << ", " << Tc_100 << ", " << voltage << ", " << std::dec << movement << std::endl;
+            }
+            else
             {
-                TReading = (TReading ^ 0xffff) + 1; // 2's comp
+                std::cerr << "Unhandled message: 0x" << std::hex << (int) resp.m_message[0] << std::endl;
             }
-
-            double Tc_100 = TReading * 0.5;
-            
-            uint16_t voltageRaw = static_cast<uint16_t>( resp.m_message[14] )<<8 | resp.m_message[15];
-
-            double voltage = static_cast<double>(voltageRaw) * (1.2/1023.0);
-            
-            std::cout << boost::posix_time::second_clock::local_time() << std::hex << " 0x" << fullAddress << " - " << Tc_100 << " degC, " << voltage << "V" << std::endl;
         }
         catch ( std::exception& e )
         {
