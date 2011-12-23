@@ -1,5 +1,7 @@
 #include "WProgram.h"
 
+#include <avr/wdt.h>
+
 #include "../include/xbeeapi.hpp"
 #include "onewiretemperature.hpp"
 
@@ -67,25 +69,28 @@ void assert( uint8_t errCode, bool predicate )
     if ( !predicate )
     {
         signal(errCode);
-        delay(2000);
-        resetFunc();
+        
+        while (true);
     }
 }
 
 void run()                     
 {
-    // initialize the digital pin as an output:
     Serial.begin(19200);
     
     pinMode(ledPin, OUTPUT);
     pinMode(pirPin, INPUT);
     
-    for ( int i = 0; i < 50; ++i )
+    // Set up the watchdog timer
+    wdt_enable(WDTO_8S);
+    
+    wdt_reset();
+    for ( int i = 0; i < 30; ++i )
     {
         digitalWrite(ledPin, HIGH);
-        delay(15);
+        delay(50);
         digitalWrite(ledPin, LOW);
-        delay(15);
+        delay(50);
     }
     
     ArduinoSerialPort s;
@@ -94,6 +99,7 @@ void run()
     uint8_t frameId = 1;
     
     // Set Zigbee PAN
+    wdt_reset();
     {
         Packet p;
         
@@ -143,9 +149,10 @@ void run()
         
         // Delay and poll the PIR sensor
         bool sensedMovement = false;
-        for ( int i = 0; i < 5; ++i )
+        for ( int i = 0; i < 10; ++i )
         {
-            delay(2000);
+            delay(1000);
+            wdt_reset();
             sensedMovement |= (digitalRead(pirPin) ? true : false);
         }
         
